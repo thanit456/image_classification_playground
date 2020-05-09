@@ -1,6 +1,7 @@
 # REF
 # https://mc.ai/how-to-do-transfer-learning-with-efficientnet/
 # https://github.com/Tony607/efficientnet_keras_transfer_learning/blob/master/Keras_efficientnet_transfer_learning.ipynb
+# https://medium.com/analytics-vidhya/image-classification-with-efficientnet-better-performance-with-computational-efficiency-f480fdb00ac6
 
 from __future__ import absolute_import, division, print_function
 
