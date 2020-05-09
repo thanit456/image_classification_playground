@@ -210,9 +210,53 @@ def EfficientNet(input_shape, block_args_list, global_params, include_top=True, 
     for block_args in block_args_list:
         assert block_args.num_repeat > 0
         block_args = block_args._replace(
-            input_filters=round_filters(block_args.input_filters, global_params)
-            output_filters=round_filters(block_args.output_filters, global_params)
+            input_filters=round_filters(block_args.input_filters, global_params),
+            output_filters=round_filters(block_args.output_filters, global_params),
             num_repeat=round_filters(block_args.num_repeat, global_params)
         )
+
+        x = MBConvBlock(block_args, global_params,
+                    drop_connect_rate=drop_rate_dx * block_idx
+                    )(x)
+        block_idx += 1
+
+        if block_args.num_repeat > 1:
+            block_args = block_args._replace(input_filters=block_args.output_filters, strides=[1, 1])
+        
+        x = KL.Conv2D(
+            filters=round_filters(1280, global_params),
+            kernel_size=[1, 1],
+            strides=[1, 1],
+            kernel_initializer=ConvKernelInitializer(),
+            padding='same',
+            use_bias=False
+        )(x)
+        x = KL.BatchNormalization(
+            axis=channel_axis,
+            momentum=batch_norm_momentum,
+            epsilon=batch_norm_epsilon
+        )(x)
+        x = Swish()(x)
+        if include_top:
+            x = KL.GlobalAveragePooling2D(data_format=global_params.data_format)(x)
+            if global_params.drop_rate > 0:
+                x = KL.Dropout(global_params.dropout_rate)(x)
+            x = KL.Dense(global_params.num_classes, kernel_initializer=DenseKernelInitializer())(x)
+            x = KL.Activation('softmax')(x)
+        else:
+            if pooling == 'avg':
+                x = KL.GlobalAveragePooling2D(data_format=global_params.data_format)(x)
+            elif pooling == 'max':
+                x = KL.GlobalMaxPooling2D(data_format=global_params.data_format)(x)
+        outputs = x
+        model = KM.Model(inputs, outputs)
+        return model
+
+def _get_model_by_name(model_name, input_shape=None, include_top=True, weights=None, classes=1000, pooling=None):
+    if weights not in {None, 'image'}:
+        raise ValueError('Parameter `weights` should be one of [None, "image"]')
+    if weight == 'imagenet' and model_name not in IMAGENET_WEIGHTS:
+        raise ValueError('There are not pretrained weights for {} model.'.format(model_name))
+        
         
 
